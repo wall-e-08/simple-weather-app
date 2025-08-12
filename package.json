@@ -1,0 +1,16 @@
+{
+  "name": "weather-app-homegroup",
+  "version": "1.0.0",
+  "description": "Simple weather app.",
+  "main": "index.js",
+  "scripts": {
+    "start:frontend": "npm --prefix frontend run start",
+    "start:backend": "npm --prefix backend run start",
+    "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

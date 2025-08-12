@@ -1,9 +1,9 @@
-import Image from "next/image";
-import {poppins} from "./layout";
+import {MapPin} from "lucide-react";
+
 import HourlyCard from "../components/HourlyCard";
 import {Button} from "../components/ui/button";
-import {Filter, MapPin, Search} from "lucide-react";
 import CurrentTime from "../components/CurrentTime";
+import SearchInput from "../components/SearchInput";
 
 const hourly = [
   { t: '1 PM', temp: 20, label: 'Cloudy', rotation: 50, speed: 1 },
@@ -27,16 +27,7 @@ export default function Home() {
                       p-4 md:py-8 md:pl-8 md:pr-0 flex flex-col md:flex-row overflow-hidden">
         <section className="flex-1 md:pr-8 lg:w-[70%] flex flex-col justify-between">
 
-          <div className="mt-4 w-full flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+          <SearchInput/>
 
           <div className="flex justify-start items-center gap-5 py-2">
             <div className="text-base md:text-lg font-bold flex items-center space-x-2">
@@ -48,7 +39,7 @@ export default function Home() {
 
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="flex items-start md:items-center space-x-2 md:space-x-4">
-              <div className={`text-[5rem] md:text-[12rem] leading-none text-gray-600 ${poppins.className}`}>20</div>
+              <div className="text-[5rem] md:text-[12rem] leading-none text-gray-600 font-family-poppins">20</div>
               <div className="text-4xl md:text-6xl text-gray-600 self-start mt-4">°</div>
             </div>
 

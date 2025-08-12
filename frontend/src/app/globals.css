@@ -133,3 +133,7 @@
     box-shadow: 0 0 18px 3px rgba(15, 15, 15, 0.05);
   }
 }
+
+.font-family-poppins {
+  font-family: var(--font-poppins); /* nextjs font */
+}

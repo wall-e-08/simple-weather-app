@@ -1,9 +1,12 @@
+'use client';
+
 import {MapPin} from "lucide-react";
 
 import HourlyCard from "../components/HourlyCard";
 import {Button} from "../components/ui/button";
 import CurrentTime from "../components/CurrentTime";
 import SearchInput from "../components/SearchInput";
+import {useEffect, useState} from "react";
 
 const hourly = [
   { t: '1 PM', temp: 20, label: 'Cloudy', rotation: 50, speed: 1 },
@@ -21,6 +24,31 @@ const favouriteCities = [
 ]
 
 export default function Home() {
+  const [userLocCord, setUserLocCord] = useState<{ lat: number; lon: number } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    navigator.geolocation.watchPosition(
+      (position) => {
+        console.log({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        })
+        setUserLocCord({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+      },
+      (err) => {
+        console.error(err.message);
+      }
+    );
+  }, []);
+
   return (
     <main className="min-h-screen flex items-center justify-center p-4 md:p-8">
       <div className="max-w-[1200px] w-full bg-white rounded-xl card-main

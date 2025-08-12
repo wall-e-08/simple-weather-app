@@ -48,8 +48,8 @@ export default function Home() {
 
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="flex items-start md:items-center space-x-2 md:space-x-4">
-              <div className={`text-[5rem] md:text-[12rem] leading-none font-extralight text-gray-600 ${poppins.className}`}>20</div>
-              <div className="text-4xl md:text-6xl text-gray-600">°</div>
+              <div className={`text-[5rem] md:text-[12rem] leading-none text-gray-600 ${poppins.className}`}>20</div>
+              <div className="text-4xl md:text-6xl text-gray-600 self-start mt-4">°</div>
             </div>
 
             <div className="mt-2 md:mt-3 text-xl md:text-md">Feels like 19° • <CurrentTime/></div>

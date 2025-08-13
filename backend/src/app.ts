@@ -3,27 +3,42 @@ import type { Request, Response } from 'express';
 import bodyParser from "body-parser";
 import cors from 'cors';
 import rateLimit from "express-rate-limit";
+import dotenv from "dotenv";
 import helmet from "helmet";
 
 import { OpenWeatherAPI } from "./openWeatherAPI";
 import type { GeoLocationData } from "./openWeatherAPI";
 
 
+dotenv.config();
+
+export const API_BASE_URL: string = '/api/v1';
+
+const ALLOWED_HOSTS = process.env.ALLOWED_HOSTS as string
+
+if (!ALLOWED_HOSTS) {
+  console.warn("ALLOWED_HOSTS environment variable is not set.");
+}
+
+const RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS as string) || 60
+const RATE_LIMIT_COUNT = parseInt(process.env.RATE_LIMIT_COUNT as string) || 20
+
+// todo: handle blocked ip for a certain time
+const rateLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_SECONDS * 1000,
+  max: RATE_LIMIT_COUNT,
+  message: 'Too many requests from this IP, please try again later.'
+});
+
 const app = express();
 
 // Enable CORS
 app.use(cors({
-  origin: ['http://localhost:3000', ], // todo: add frontend main url
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: ALLOWED_HOSTS ? ALLOWED_HOSTS.split(',') : [],
+  methods: ['GET',],
   allowedHeaders: ['Content-Type',],
   credentials: false
 }));
-
-const rateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 5,
-  message: 'Too many requests from this IP, please try again later.'
-});
 
 app.use(rateLimiter);
 
@@ -35,8 +50,6 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // parse application/json
 app.use(bodyParser.json())
-
-export const API_BASE_URL: string = '/api/v1';
 
 app.get(API_BASE_URL, async (req: Request, res: Response) => {
   const city: string = req.query.city as string;

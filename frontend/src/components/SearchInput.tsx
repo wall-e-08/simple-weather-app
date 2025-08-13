@@ -4,100 +4,71 @@ import {Loader2, Search} from "lucide-react";
 import {useEffect, useRef, useState} from "react";
 
 
-type CityType = {
-  city: string;
-};
-
-const CITIES: CityType[] = [
-  { city: "London" },
-  { city: "Paris" },
-  { city: "New York" },
-  { city: "Tokyo" },
-  { city: "Berlin" },
-  { city: "Sydney" }
-];
-
-const dummyFetchCities = (query: string): Promise<CityType[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (!query.trim()) {
-        resolve([]);
-      } else {
-        const filtered = CITIES.filter((item) =>
-          item.city.toLowerCase().includes(query.toLowerCase())
-        );
-        resolve(filtered);
-      }
-    }, 300);
-  });
-};
-
 const SearchInput = () => {
   const [query, setQuery] = useState<string>("");
-  const [debouncedQuery, setDebouncedQuery] = useState<string>(query);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<any>(null)
 
-  // Debounce effect: Updates `debouncedQuery` after user stops typing for 500ms
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 500);
-
-    return () => {
-      clearTimeout(handler); // Clear timeout if user types again quickly
-    };
-  }, [query]);
-
-  // API Fetch effect: Triggers only when `debouncedQuery` changes
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
+  const searchCityHandler = () => {
+    if (!query.trim()) {
       setResults([]);
       setError(null);
       setLoading(false);
       return;
     }
 
-    // todo: add abortcontroller
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    setError(null)
+    setLoading(true);
+    setOpen(true);
 
-      try {
-        const response = await dummyFetchCities(query);
-        console.log(response)
-        // if (!response.ok) throw new Error("Failed to fetch data");
+    fetch(new URL("/api/v1", process.env.NEXT_PUBLIC_API_BASE_URL!).href + "?city=london")
+      .then(async res => {
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;  // invalid json fallback (required to handle too many requests)
+        }
 
-        // const data = await response.json();
-        setResults(response || []); // Adjust based on API response
-      } catch (err) {
-        setError((err as Error).message);
+        if (!res.ok) {
+          throw new Error(
+            data?.message || data || `HTTP error ${res.status}`
+          );
+        }
+
+        return data;
+      })
+      .then(data => {
+        if (data && data.success) {
+          setResults(data.data);
+        } else {
+          throw new Error(data?.message || "No data found");
+        }
+      })
+      .catch(e => {
+        setError(e instanceof Error ? e.message : e as string);
         setResults([]);
-      } finally {
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    };
+      })
+  }
 
-    fetchData();
-  }, [debouncedQuery]);
-
-  // Show dropdown when typing
-  useEffect(() => {
-    if (query.trim() !== "") {
-      setOpen(true);
-    } else {
+  const searchOnKeyDownHandler = e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      searchCityHandler();
+    } else if (e.key === "Escape") {
       setOpen(false);
     }
-  }, [query]);
+  }
 
   // Outside click to close results
   useEffect(() => {
-    fetch(new URL(process.env.NEXT_PUBLIC_API_BASE_URL).href + "?city=london")
-      .then(res => res.json())
-      .then(data => console.log(`fetch data: ${JSON.stringify(data)}`))
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
@@ -107,22 +78,38 @@ const SearchInput = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const onClickCity = (item) => () => {
+    setQuery(item.city);
+    setOpen(false);
+
+    // todo: fetch weather
+  }
 
   return (
     <div className="mt-4 w-full relative flex items-center space-x-4">
       <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
+          onKeyDown={searchOnKeyDownHandler}
+          onFocus={() => query.trim() && setOpen(true)}
           placeholder="Search"
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <Search
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
+          size={16}
+          onClick={searchCityHandler}
         />
       </div>
 
       {open && (
-        <ul className="absolute list-none p-0 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg top-[100%] max-h-60 overflow-auto z-10">
+        <ul
+          className="absolute list-none p-0 mt-1 w-full bg-white border border-gray-300 rounded-md
+           shadow-lg top-[100%] max-h-60 overflow-auto z-10"
+          ref={containerRef}
+        >
           {loading ? (
             <li className="flex justify-center items-center p-3">
               <Loader2 className="animate-spin h-5 w-5 text-blue-600" />
@@ -134,9 +121,7 @@ const SearchInput = () => {
               <li
                 key={idx}
                 className="px-4 py-2 cursor-pointer hover:bg-blue-100"
-                onClick={() => {
-                  setQuery(item.city);
-                }}
+                onClick={onClickCity(item)}
               >
                 {item.city}
               </li>

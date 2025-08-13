@@ -11,7 +11,8 @@ interface OpenWeatherGeoItem {
 }
 
 export interface GeoLocationItem {
-  location: string;
+  city: string;
+  country: string;
   lat: number;
   lon: number;
 }
@@ -54,7 +55,8 @@ export class OpenWeatherAPI {
       return {
         success: true,
         data: data.map((item: OpenWeatherGeoItem): GeoLocationItem => ({
-          location: `${item.name}, ${item.country}`,
+          city: item.name,
+          country: item.country,
           lat: item.lat,
           lon: item.lon
         }))

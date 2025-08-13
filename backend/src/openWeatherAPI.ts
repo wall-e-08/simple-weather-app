@@ -1,26 +1,7 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
+import {GeoLocationData, GeoLocationItem, OpenWeatherFullWeatherData, OpenWeatherGeoItem} from "./apiTypes";
 
-interface OpenWeatherGeoItem {
-  name: string;
-  local_names?: Record<string, string>;
-  lat: number;
-  lon: number;
-  country: string;
-  state?: string;
-}
-
-export interface GeoLocationItem {
-  city: string;
-  country: string;
-  lat: number;
-  lon: number;
-}
-
-export interface GeoLocationData {
-  success: true;
-  data: GeoLocationItem[]
-}
 
 export class OpenWeatherAPI {
   private client: AxiosInstance;
@@ -69,18 +50,25 @@ export class OpenWeatherAPI {
   // /data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API key}
   // https://openweathermap.org/api/one-call-3
   async getHourlyData(lat: number, lon: number) {
-    const res = await this.client.get(
-      "/data/3.0/onecall",
-      {
-        params: {
-          lat,
-          lon,
-          exclude: "minutely,daily"
+    try {
+      const res = await this.client.get<OpenWeatherFullWeatherData>(
+        "/data/3.0/onecall",
+        {
+          params: {
+            lat,
+            lon,
+            units: "metric",
+            exclude: "minutely,daily"
+          },
+          timeout: 3000,
         }
-      }
-    );
-    // todo: format and handle errors
-    return res.data;
+      );
+      const data = await res.data;
+      return data as OpenWeatherFullWeatherData;  // todo: do I need re-format ?
+
+    } catch (e) {
+      throw new Error(`Internal API Error: Lat: ${lat}, Lon: ${lon}`);
+    }
   }
 }
 

@@ -1,15 +1,15 @@
 import request from "supertest";
 import app, {API_BASE_URL} from "../src/app";
 import { OpenWeatherAPI } from "../src/openWeatherAPI";
-import type { GeoLocationData } from "../src/openWeatherAPI";
+import type { GeoLocationData } from "../src/apiTypes";
 
 
 jest.mock("../src/openWeatherAPI");
 
-describe(`GET ${API_BASE_URL}`, () => {
+describe(`GET ${API_BASE_URL}/search`, () => {
   it("should return 422 if city parameter is missing",  (done) => {
     request(app)
-      .get(API_BASE_URL)
+      .get(`${API_BASE_URL}/search`)
       .expect('Content-Type', /json/)
       .expect(422)
       .expect({
@@ -54,7 +54,7 @@ describe(`GET ${API_BASE_URL}`, () => {
     }));
 
     const res = await request(app)
-                        .get(API_BASE_URL)
+                        .get(`${API_BASE_URL}/search`)
                         .query({ city: "London", limit: 3 });
 
     expect(res.status).toBe(200);

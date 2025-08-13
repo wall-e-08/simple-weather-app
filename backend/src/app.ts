@@ -7,7 +7,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 
 import { OpenWeatherAPI } from "./openWeatherAPI";
-import type { GeoLocationData } from "./openWeatherAPI";
+import type { GeoLocationData } from "./apiTypes";
+import {OpenWeatherFullWeatherData} from "./apiTypes";
 
 
 dotenv.config();
@@ -51,7 +52,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 // parse application/json
 app.use(bodyParser.json())
 
-app.get(API_BASE_URL, async (req: Request, res: Response) => {
+app.get(`${API_BASE_URL}/search`, async (req: Request, res: Response) => {
   const city: string = req.query.city as string;
   const limit: number = parseInt(req.query.limit as string) || 10;
 
@@ -76,5 +77,33 @@ app.get(API_BASE_URL, async (req: Request, res: Response) => {
     })
   }
 })
+
+app.get(`${API_BASE_URL}/weather/`, async (req: Request, res: Response) => {
+  const {lat, lon}: { lat: string, lon: string } = req.query as any;
+
+  if (!lat || !lon) {
+    return res.status(422).json({
+      success: false as const,
+      message: 'lat and lon are required',
+      error: "The parameters 'lat' and 'lon' are both required and cannot be empty.",
+    });
+  }
+
+  try {
+    const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
+    const weatherAPIResponse: OpenWeatherFullWeatherData = await weatherAPI.getHourlyData(
+      parseFloat(lat),
+      parseFloat(lon)
+    );
+
+    res.status(200).json(weatherAPIResponse)
+  } catch (e) {
+    res.status(424).json({  // failed dependency
+      success: false as const,
+      message: `Error fetching weather data for coordinates lat: ${lat}, lon: ${lon}`,
+      error: `${e instanceof Error ? e.message : String(e)}`,
+    })
+  }
+});
 
 export default app;

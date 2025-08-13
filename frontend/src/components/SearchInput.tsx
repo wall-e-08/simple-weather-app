@@ -24,7 +24,7 @@ const SearchInput = () => {
     setLoading(true);
     setOpen(true);
 
-    fetch(new URL("/api/v1", process.env.NEXT_PUBLIC_API_BASE_URL!).href + "?city=london")
+    fetch(new URL("/api/v1/search", process.env.NEXT_PUBLIC_API_BASE_URL!).href + "?city=london&limit=10")
       .then(async res => {
         const text = await res.text();
         let data;

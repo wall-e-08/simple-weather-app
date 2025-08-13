@@ -95,6 +95,9 @@ const SearchInput = () => {
 
   // Outside click to close results
   useEffect(() => {
+    fetch(new URL(process.env.NEXT_PUBLIC_API_BASE_URL).href + "?city=london")
+      .then(res => res.json())
+      .then(data => console.log(`fetch data: ${JSON.stringify(data)}`))
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);

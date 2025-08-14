@@ -5,8 +5,10 @@ import cors from 'cors';
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import Redis from "ioredis";
 
 import { OpenWeatherAPI } from "./openWeatherAPI";
+import {HourlyWeather, OpenWeatherFullWeatherData} from "./apiTypes";
 
 
 dotenv.config();
@@ -28,6 +30,8 @@ const rateLimiter = rateLimit({
   max: RATE_LIMIT_COUNT,
   message: 'Too many requests from this IP, please try again later.'
 });
+
+const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
 
 const app = express();
 
@@ -132,15 +136,37 @@ app.get(`${API_BASE_URL}/weather/`, async (req: Request, res: Response) => {
   try {
     validateQueryParam(() => Number.isNaN(lat) || Number.isNaN(lon), ["lat", "lon"]);
 
+    const cached = await redis.get(`weather:${lat},${lon}`);
+    if (cached) {
+      const data: OpenWeatherFullWeatherData = JSON.parse(cached);
+
+      const filteredHourly: HourlyWeather[] = data.hourly
+        .filter(h => h.dt > new Date().getTime() / 1000)   // only future hours
+        .slice(0, 6);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          ...data,
+          hourly: filteredHourly,
+        },
+      });
+    }
+
     const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
 
     await handleRequest(
       res,
       () => weatherAPI.getHourlyData(lat, lon)
-        .then(data => ({
-          ...data,
-          hourly: data.hourly.slice(0, 6) ?? []
-        })),
+        .then(async data => {
+          await redis.set(`weather:${lat},${lon}`, JSON.stringify(data), "EX", 3600);
+          return {
+            ...data,
+            hourly: data.hourly
+              .filter(h => h.dt > new Date().getTime() / 1000)
+              .slice(0, 6) ?? []
+          }
+        }),
       `Error fetching weather data for coordinates lat '${lat}', lon '${lon}'`
     );
   } catch (e: any) {

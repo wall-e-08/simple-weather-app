@@ -64,7 +64,7 @@ interface OpenWeatherCurrentWeather extends OpenWeatherBasicWeatherData {
   [key: string]: any;
 }
 
-interface HourlyWeather extends OpenWeatherBasicWeatherData {
+export interface HourlyWeather extends OpenWeatherBasicWeatherData {
   wind_gust?: number;
   pop?: number; // probability of precipitation
   weather: OpenWeatherHRDescription[];

@@ -40,15 +40,14 @@ export class OpenWeatherAPI {
 
       const data = await res.data;
 
-      return {
-        success: true,
-        data: data.map((item: OpenWeatherGeoItem): GeoLocationItem => ({
+      return data.map(
+        (item: OpenWeatherGeoItem): GeoLocationItem => ({
           city: item.name,
           country: item.country,
           lat: item.lat,
           lon: item.lon
-        }))
-      } as GeoLocationData;
+        })
+      ) as GeoLocationItem[];
     } catch (e) {
       throw new Error(`Internal API Error: City: ${city}`);
     }
@@ -75,14 +74,11 @@ export class OpenWeatherAPI {
         throw new Error(`No data found for coordinates: Lat: ${lat}, Lon: ${lon}`);
       } else {
         return {
-          success: true,
-          data: {
-            city: data[0]?.name,
-            country: data[0]?.country,
-            lat: data[0]?.lat,
-            lon: data[0]?.lon
-          }
-        } as ReverseGeoLocationData;
+          city: data[0]?.name,
+          country: data[0]?.country,
+          lat: data[0]?.lat,
+          lon: data[0]?.lon
+        } as GeoLocationItem
       }
     } catch (e) {
       throw new Error(`Internal API Error: Lat: ${lat}, Lon: ${lon}`);
@@ -107,17 +103,14 @@ export class OpenWeatherAPI {
       );
       const data = await res.data;
 
-      const filteredHourly = data.hourly.filter(
+      const filteredHourlyFull = data.hourly.filter(
         (hour: { dt: number }) => hour.dt > data.current.dt
-      ).slice(0, 6);
+      );
 
       return {
-        success: true,
-        data: {
-          ...data,
-          hourly: filteredHourly,
-        } as OpenWeatherFullWeatherData,
-      };
+        ...data,
+        hourly: filteredHourlyFull,
+      } as OpenWeatherFullWeatherData;
     } catch (e) {
       throw new Error(`Internal API Error: Lat: ${lat}, Lon: ${lon}`);
     }

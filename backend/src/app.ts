@@ -7,8 +7,6 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 
 import { OpenWeatherAPI } from "./openWeatherAPI";
-import type {GeoLocationData, ReverseGeoLocationData} from "./apiTypes";
-import {OpenWeatherFullWeatherData} from "./apiTypes";
 
 
 dotenv.config();
@@ -52,29 +50,56 @@ app.use(bodyParser.urlencoded({ extended: true }))
 // parse application/json
 app.use(bodyParser.json())
 
+// helper function
+const handleRequest = async <T>(
+  res: Response,
+  fn: () => Promise<T>,
+  errorMessage: string
+) => {
+  try {
+    const data = await fn();
+    res.status(200).json({
+      success: true as const,
+      data
+    });
+  } catch (e) {
+    res.status(424).json({  // failed dependency
+      success: false as const,
+      message: errorMessage,
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+};
+
+const validateQueryParam = (isInvalid: () => boolean, names: string[]) => {
+  if (isInvalid()) {
+    throw {
+      status: 422,
+      message: `${names.join(", ")} is/are missing or invalid.`,
+      error: `The parameter '${names.join(", ")}' is/are missing or invalid.`
+    };
+  }
+};
+
 app.get(`${API_BASE_URL}/search`, async (req: Request, res: Response) => {
   const city: string = req.query.city as string;
   const limit: number = parseInt(req.query.limit as string) || 10;
 
-  if (!city) {
-    return res.status(422).json({ // Unprocessable Content
-      success: false as const,
-      message: 'city is required',
-      error: "The parameter 'city' is required and cannot be empty.",
-    });
-  }
-
   try {
+    validateQueryParam(() => !city, ["city"]);
     const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
-    const weatherAPIResponse: GeoLocationData = await weatherAPI.getGeoLocation(city, limit);
 
-    res.status(200).json(weatherAPIResponse)
-  } catch (e) {
-    res.status(424).json({  // failed dependency
+    await handleRequest(
+      res,
+      () => weatherAPI.getGeoLocation(city, limit),
+      `Error fetching location for city '${city}'`
+    );
+  } catch (e: any) {
+    res.status(e.status).json({
       success: false as const,
-      message: `Error fetching location for city '${city}'`,
-      error: `${e instanceof Error ? e.message : String(e)}`,
-    })
+      message: e.message,
+      error: e.error || String(e),
+    });
   }
 })
 
@@ -82,53 +107,48 @@ app.get(`${API_BASE_URL}/search-by-coord`, async (req: Request, res: Response) =
   const lat: number = parseFloat(req.query.lat as string);
   const lon: number = parseFloat(req.query.lon as string);
 
-  if (Number.isNaN(lat) || Number.isNaN(lon)) {
-    return res.status(422).json({ // Unprocessable Content
-      success: false as const,
-      message: 'lat and lon are required',
-      error: "The parameters 'lat' and 'lon' are required and cannot be empty.",
-    });
-  }
-
   try {
+    validateQueryParam(() => Number.isNaN(lat) || Number.isNaN(lon), ["lat", "lon"]);
     const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
-    const weatherAPIResponse: ReverseGeoLocationData = await weatherAPI.reverseGeoLocation(lat, lon);
 
-    res.status(200).json(weatherAPIResponse)
-  } catch (e) {
-    res.status(424).json({  // failed dependency
+    await handleRequest(
+      res,
+      () => weatherAPI.reverseGeoLocation(lat, lon),
+      `Error fetching location for lat '${lat}', lon '${lon}'`
+    );
+  } catch (e: any) {
+    res.status(e.status).json({
       success: false as const,
-      message: `Error fetching location for lat '${lat}', lon '${lon}'`,
-      error: `${e instanceof Error ? e.message : String(e)}`,
-    })
+      message: e.message,
+      error: e.error || String(e),
+    });
   }
 })
 
 app.get(`${API_BASE_URL}/weather/`, async (req: Request, res: Response) => {
-  const {lat, lon}: { lat: string, lon: string } = req.query as any;
-
-  if (!lat || !lon) {
-    return res.status(422).json({
-      success: false as const,
-      message: 'lat and lon are required',
-      error: "The parameters 'lat' and 'lon' are both required and cannot be empty.",
-    });
-  }
+  const lat: number = parseFloat(req.query.lat as string);
+  const lon: number = parseFloat(req.query.lon as string);
 
   try {
-    const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
-    const weatherAPIResponse = await weatherAPI.getHourlyData(
-      parseFloat(lat),
-      parseFloat(lon)
-    );
+    validateQueryParam(() => Number.isNaN(lat) || Number.isNaN(lon), ["lat", "lon"]);
 
-    res.status(200).json(weatherAPIResponse)
-  } catch (e) {
-    res.status(424).json({  // failed dependency
+    const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
+
+    await handleRequest(
+      res,
+      () => weatherAPI.getHourlyData(lat, lon)
+        .then(data => ({
+          ...data,
+          hourly: data.hourly.slice(0, 6) ?? []
+        })),
+      `Error fetching weather data for coordinates lat '${lat}', lon '${lon}'`
+    );
+  } catch (e: any) {
+    res.status(e.status).json({
       success: false as const,
-      message: `Error fetching weather data for coordinates lat: ${lat}, lon: ${lon}`,
-      error: `${e instanceof Error ? e.message : String(e)}`,
-    })
+      message: e.message,
+      error: e.error || String(e),
+    });
   }
 });
 

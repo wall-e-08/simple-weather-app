@@ -1,6 +1,13 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
-import {GeoLocationData, GeoLocationItem, OpenWeatherFullWeatherData, OpenWeatherGeoItem} from "./apiTypes";
+import {
+  GeoLocationData,
+  GeoLocationItem,
+  OpenWeatherFullWeatherData,
+  OpenWeatherGeoItem,
+  OpenWeatherReverseGeoData,
+  ReverseGeoLocationData
+} from "./apiTypes";
 
 
 export class OpenWeatherAPI {
@@ -44,6 +51,41 @@ export class OpenWeatherAPI {
       } as GeoLocationData;
     } catch (e) {
       throw new Error(`Internal API Error: City: ${city}`);
+    }
+  }
+
+  // /geo/1.0/reverse?lat={lat}&lon={lon}&limit={limit}&appid={API key}
+  async reverseGeoLocation(lat: number, lon: number) {
+    try {
+      const res = await this.client.get<OpenWeatherReverseGeoData[]>(
+        "/geo/1.0/reverse",
+        {
+          params: {
+            lat,
+            lon,
+            limit: 1,
+          },
+          timeout: 3000,
+        }
+      );
+
+      const data = await res.data;
+
+      if (!data || data.length === 0) {
+        throw new Error(`No data found for coordinates: Lat: ${lat}, Lon: ${lon}`);
+      } else {
+        return {
+          success: true,
+          data: {
+            city: data[0]?.name,
+            country: data[0]?.country,
+            lat: data[0]?.lat,
+            lon: data[0]?.lon
+          }
+        } as ReverseGeoLocationData;
+      }
+    } catch (e) {
+      throw new Error(`Internal API Error: Lat: ${lat}, Lon: ${lon}`);
     }
   }
 

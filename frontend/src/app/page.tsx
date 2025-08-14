@@ -1,46 +1,59 @@
 'use client';
 
-import {useEffect, useState} from "react";
-import {MapPin} from "lucide-react";
+import {MapPin, X} from "lucide-react";
 
 import HourlyCard from "../components/HourlyCard";
 import {Button} from "../components/ui/button";
 import SearchInput from "../components/SearchInput";
-import {HourlyWeather, StoreProvider, useWeatherStore} from "./weatherStore";
+import {HourlyWeather, OpenWeatherFullWeatherData, StoreProvider, useWeatherStore} from "./weatherStore";
 import {getGreetings, getHourStr, hrVisibility, today} from "../lib/utils";
+import {usePersistedState} from "../hooks";
+import {useEffect, useState} from "react";
 
-
-const favouriteCities = [
-  { city: "London" },
-  { city: "Leeds" },
-  { city: "Manchester" },
-]
 
 function Home() {
   const {state, dispatch} = useWeatherStore();
 
-  const [userLocCord, setUserLocCord] = useState<{ lat: number; lon: number }>({
-    lat: 0, lon: 0
-  });
+  const [favCities, setFavCities] = usePersistedState("favouriteCities", []);
+  const [isClient, setIsClient] = useState(false)
 
+  // hydration warning hack
   useEffect(() => {
-    if (!navigator.geolocation) {
-      console.error("Geolocation is not supported by your browser");
-      return;
-    }
+    setIsClient(true)
+  }, [])
 
-    navigator.geolocation.watchPosition(
-      (position) => {
-        setUserLocCord({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        });
-      },
-      (err) => {
-        console.error(err.message);
+  // todo: update based on current time
+  const addToFavHandler = () => {
+    if (!state.city || !state.country) return;
+    setFavCities(prevCities => {
+      const index = prevCities.findIndex(
+        c => c.city.toLowerCase() === state.city.toLowerCase() &&
+          c.country.toLowerCase() === state.country.toLowerCase()
+      );
+
+      const newFavCity: OpenWeatherFullWeatherData = {
+        ...state
+      };
+
+      if (index >= 0) {
+        // Update
+        const tmp = [...prevCities];
+        tmp[index] = newFavCity;
+        return tmp;
+      } else {
+        // Add
+        return [...prevCities, newFavCity];
       }
-    );
-  }, []);
+    });
+  }
+
+  const removeFavHandler = (index: number) => () => {
+    setFavCities(prevCities => {
+      const tmp = [...prevCities];
+      tmp.splice(index, 1);
+      return tmp;
+    });
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 md:p-8">
@@ -48,7 +61,7 @@ function Home() {
                       p-4 md:py-8 md:pl-8 md:pr-0 flex flex-col md:flex-row overflow-hidden">
         <section className="flex-1 md:pr-8 lg:w-[70%] flex flex-col justify-between">
 
-          <SearchInput {...userLocCord}/>
+          <SearchInput/>
 
           <div className="flex justify-start items-center gap-5 py-2">
             <div className="text-base md:text-lg font-bold flex items-center space-x-2">
@@ -56,6 +69,14 @@ function Home() {
                 <>
                   <MapPin size={16} color="red"/>
                   <span>{state.city}</span>
+                  <Button
+                    variant="default"
+                    size="xs"
+                    className="rounded-sm px-3 py-1 cursor-pointer text-xs leading-none bg-cyan-500"
+                    onClick={addToFavHandler}
+                  >
+                    Add to Favourites
+                  </Button>
                 </>
               ) : (
                 <span className="text-gray-500">Search for a location</span>
@@ -90,7 +111,7 @@ function Home() {
                 <HourlyCard
                   key={hw.dt}
                   time={getHourStr(hw.dt, state.timezone)}
-                  temp={hw.temp}
+                  temp={Math.round((hw.temp))}
                   label={hw.weather[0].main}
                   rotation={hw.wind_deg}
                   speed={Math.round(hw.wind_speed * 3.6)}
@@ -143,19 +164,32 @@ function Home() {
 
           <hr className="border-t border-gray-300 w-full my-3 md:my-6 "/>
 
-          <div className="w-full flex flex-col gap-2">
+          {isClient && <div className="w-full flex flex-col gap-2">
             <h3 className="text-xl">
-              {favouriteCities.length > 0 ? "Favourite Location" : "Add your Favourite Location"}
+              {favCities.length > 0 ? "Favourite Location" : "Add your Favourite Location"}
             </h3>
-            {favouriteCities.map((fav, index) => (
+            {favCities.map((favData, index) => (
               <div className="w-full flex" key={`fav-city-${index}`}>
-                <Button className="flex-1 rounded-none mr-1">
-                  {fav.city}
+                <Button
+                  className="flex-1 rounded-none mr-1 cursor-pointer"
+                  onClick={() => {
+                    dispatch({
+                      type: "SET_WEATHER_DATA",
+                      data: favData
+                    });
+                  }}
+                >
+                  {favData.city}
                 </Button>
-                <Button className="w-10 rounded-none">X</Button>
+                <Button
+                  className="w-10 rounded-none cursor-pointer"
+                  onClick={removeFavHandler(index)}
+                >
+                  <X size={12} strokeWidth={3}/>
+                </Button>
               </div>
             ))}
-          </div>
+          </div>}
         </aside>
       </div>
     </main>

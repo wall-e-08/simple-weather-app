@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 
 import { OpenWeatherAPI } from "./openWeatherAPI";
-import type { GeoLocationData } from "./apiTypes";
+import type {GeoLocationData, ReverseGeoLocationData} from "./apiTypes";
 import {OpenWeatherFullWeatherData} from "./apiTypes";
 
 
@@ -73,6 +73,32 @@ app.get(`${API_BASE_URL}/search`, async (req: Request, res: Response) => {
     res.status(424).json({  // failed dependency
       success: false as const,
       message: `Error fetching location for city '${city}'`,
+      error: `${e instanceof Error ? e.message : String(e)}`,
+    })
+  }
+})
+
+app.get(`${API_BASE_URL}/search-by-coord`, async (req: Request, res: Response) => {
+  const lat: number = parseFloat(req.query.lat as string);
+  const lon: number = parseFloat(req.query.lon as string);
+
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    return res.status(422).json({ // Unprocessable Content
+      success: false as const,
+      message: 'lat and lon are required',
+      error: "The parameters 'lat' and 'lon' are required and cannot be empty.",
+    });
+  }
+
+  try {
+    const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
+    const weatherAPIResponse: ReverseGeoLocationData = await weatherAPI.reverseGeoLocation(lat, lon);
+
+    res.status(200).json(weatherAPIResponse)
+  } catch (e) {
+    res.status(424).json({  // failed dependency
+      success: false as const,
+      message: `Error fetching location for lat '${lat}', lon '${lon}'`,
       error: `${e instanceof Error ? e.message : String(e)}`,
     })
   }

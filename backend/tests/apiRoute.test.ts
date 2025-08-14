@@ -6,7 +6,7 @@ import type { GeoLocationData } from "../src/apiTypes";
 
 jest.mock("../src/openWeatherAPI");
 
-describe(`GET ${API_BASE_URL}/search`, () => {
+describe(`GET ${API_BASE_URL}`, () => {
   it("should return 422 if city parameter is missing",  (done) => {
     request(app)
       .get(`${API_BASE_URL}/search`)
@@ -14,8 +14,8 @@ describe(`GET ${API_BASE_URL}/search`, () => {
       .expect(422)
       .expect({
         success: false,
-        message: 'city is required',
-        error: "The parameter 'city' is required and cannot be empty.",
+        message: 'city is/are missing or invalid.',
+        error: "The parameter 'city' is/are missing or invalid."
       })
       .end((err) => {
         if (err) return done(err);
@@ -24,7 +24,7 @@ describe(`GET ${API_BASE_URL}/search`, () => {
   });
 
   // todo: might fail due to sequence of cities or lat/lon changes
-  it("should return weather data for valid city",  async() => {
+  it("should return list of cities with details",  async() => {
     const mockResponse: GeoLocationData = {
       success: true,
       data: [
@@ -50,7 +50,7 @@ describe(`GET ${API_BASE_URL}/search`, () => {
     };
 
     (OpenWeatherAPI as jest.Mock).mockImplementation(() => ({
-      getGeoLocation: jest.fn().mockResolvedValue(mockResponse)
+      getGeoLocation: jest.fn().mockResolvedValue(mockResponse.data)
     }));
 
     const res = await request(app)
@@ -60,4 +60,31 @@ describe(`GET ${API_BASE_URL}/search`, () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual(mockResponse);
   });
+
+  it("should return a city with details",  async() => {
+    const mockResponse = {
+      success: true,
+      data: {
+        city: "London",
+        country: "GB",
+        lat: 51.5073219,
+        lon: -0.1276474
+      }
+    };
+
+    (OpenWeatherAPI as jest.Mock).mockImplementation(() => ({
+      reverseGeoLocation: jest.fn().mockResolvedValue(mockResponse.data)
+    }));
+
+    const res = await request(app)
+                        .get(`${API_BASE_URL}/search-by-coord`)
+                        .query({ lat: "51.5073219", lon: "-0.1276474" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(mockResponse);
+  });
+});
+
+afterAll(async () => {
+  await new Promise(resolve => setTimeout(resolve, 100));
 });

@@ -49,3 +49,18 @@ export const hrVisibility = (meters: number): string => { // human readable
   if (meters >= 1000) return "Poor";
   return "Very poor";
 };
+
+export const hrWindDirection = (angle: number): string => {
+  const dirs = [
+    "N", "NE", "E", "SE",
+    "S", "SW", "W", "NW"
+  ];
+
+  const normalizedAngle = angle % 360;
+
+  // Each direction covers 360 / 8 = 45 degrees
+  const index = Math.round(normalizedAngle / 45) % 16;
+
+  return `${normalizedAngle}° ${dirs[index]}`;
+};
+

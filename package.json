@@ -8,7 +8,13 @@
     "dev:backend": "npm --prefix backend run dev",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "start:frontend": "npm --prefix frontend start",
-    "start:backend": "npm --prefix backend start"
+    "start:backend": "npm --prefix backend start",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "build": "npm run build:frontend && npm run build:backend",
+    "install:frontend": "npm --prefix frontend i -D",
+    "install:backend": "npm --prefix backend i -D",
+    "install": "npm run install:frontend && npm run install:backend"
   },
   "author": "",
   "license": "ISC",

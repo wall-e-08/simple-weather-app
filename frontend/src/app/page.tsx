@@ -1,12 +1,12 @@
 'use client';
 
-import {MapPin, X} from "lucide-react";
+import {MapPin, X, TriangleAlert} from "lucide-react";
 
 import HourlyCard from "../components/HourlyCard";
 import {Button} from "../components/ui/button";
 import SearchInput from "../components/SearchInput";
 import {HourlyWeather, OpenWeatherFullWeatherData, StoreProvider, useWeatherStore} from "./weatherStore";
-import {getGreetings, getHourStr, hrVisibility, today} from "../lib/utils";
+import {getGreetings, getHourStr, hrVisibility, hrWindDirection, today} from "../lib/utils";
 import {usePersistedState} from "../hooks";
 import {useEffect, useState} from "react";
 
@@ -135,10 +135,17 @@ function Home() {
                   <td>Wind speed</td>
                   <td>{(state.current.wind_speed * 3.6).toFixed(2)} km/h</td>
                 </tr>
+                <tr>
+                  <td>Wind dir</td>
+                  <td>{hrWindDirection(state.current.wind_deg)}</td>
+                </tr>
                 {state.current.wind_gust ? (
-                  <tr>
+                  <tr className="text-orange-600">
                     <td>Wind gust</td>
-                    <td>{(state.current.wind_gust * 3.6).toFixed(2)} km/h</td>
+                    <td className="flex items-center gap-2">
+                      <TriangleAlert size={12} color="orange"/>
+                      <span>{(state.current.wind_gust * 3.6).toFixed(2)} km/h</span>
+                    </td>
                   </tr>
                 ) : null}
                 <tr>

@@ -31,6 +31,9 @@ interface OpenWeatherBasicWeatherData {
   visibility: number;
   wind_speed: number;
   wind_deg: number;
+  wind_gust?: number;
+  rain?: { "1h"?: number; "3h"?: number };
+  snow?: { "1h"?: number; "3h"?: number };
 }
 
 interface OpenWeatherHRDescription { // human readable

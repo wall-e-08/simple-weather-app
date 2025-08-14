@@ -1,11 +1,16 @@
 'use client';
 
-import {Loader2, Search} from "lucide-react";
+import {Loader2, Search, X} from "lucide-react";
 import {useEffect, useRef, useState} from "react";
 
+import {useWeatherStore} from "../app/weatherStore";
+import {fetchWeatherData, invalidJSONFallback} from "../lib/api";
 
-const SearchInput = () => {
-  const [query, setQuery] = useState<string>("");
+
+const SearchInput = ({lat, lon}: {lat: number, lon: number}) => {
+  const {state, dispatch} = useWeatherStore();
+
+  const [query, setQuery] = useState<string>(state.city);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,24 +29,11 @@ const SearchInput = () => {
     setLoading(true);
     setOpen(true);
 
-    fetch(new URL("/api/v1/search", process.env.NEXT_PUBLIC_API_BASE_URL!).href + "?city=london&limit=10")
-      .then(async res => {
-        const text = await res.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = text;  // invalid json fallback (required to handle too many requests)
-        }
-
-        if (!res.ok) {
-          throw new Error(
-            data?.message || data || `HTTP error ${res.status}`
-          );
-        }
-
-        return data;
-      })
+    fetch(
+      new URL("/api/v1/search", process.env.NEXT_PUBLIC_API_BASE_URL!).href +
+      `?city=${query}&limit=10`
+    )
+      .then(invalidJSONFallback)
       .then(data => {
         if (data && data.success) {
           setResults(data.data);
@@ -80,9 +72,20 @@ const SearchInput = () => {
 
   const onClickCity = (item) => () => {
     setQuery(item.city);
+    dispatch({type: "SET_CITY", data: {city: item.city, country: item.country}});
     setOpen(false);
 
-    // todo: fetch weather
+    fetchWeatherData(item.lat, item.lon)
+      .then(data => {
+        if (data && data.success) {
+         dispatch({type: "SET_WEATHER_DATA", data: data.data});
+        } else {
+          throw new Error(data?.message || "No data found");
+        }
+      })
+      .catch(e => {
+        setError(e instanceof Error ? e.message : e as string);
+      })
   }
 
   return (
@@ -123,7 +126,7 @@ const SearchInput = () => {
                 className="px-4 py-2 cursor-pointer hover:bg-blue-100"
                 onClick={onClickCity(item)}
               >
-                {item.city}
+                {item.city}, {item.country}
               </li>
             ))
           ) : (

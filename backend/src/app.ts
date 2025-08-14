@@ -91,7 +91,7 @@ app.get(`${API_BASE_URL}/weather/`, async (req: Request, res: Response) => {
 
   try {
     const weatherAPI: OpenWeatherAPI = new OpenWeatherAPI()
-    const weatherAPIResponse: OpenWeatherFullWeatherData = await weatherAPI.getHourlyData(
+    const weatherAPIResponse = await weatherAPI.getHourlyData(
       parseFloat(lat),
       parseFloat(lon)
     );

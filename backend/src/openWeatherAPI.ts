@@ -64,8 +64,18 @@ export class OpenWeatherAPI {
         }
       );
       const data = await res.data;
-      return data as OpenWeatherFullWeatherData;  // todo: do I need re-format ?
 
+      const filteredHourly = data.hourly.filter(
+        (hour: { dt: number }) => hour.dt > data.current.dt
+      ).slice(0, 6);
+
+      return {
+        success: true,
+        data: {
+          ...data,
+          hourly: filteredHourly,
+        } as OpenWeatherFullWeatherData,
+      };
     } catch (e) {
       throw new Error(`Internal API Error: Lat: ${lat}, Lon: ${lon}`);
     }
